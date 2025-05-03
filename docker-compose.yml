@@ -1,0 +1,30 @@
+
+services:
+  django:
+    build: .
+    command: gunicorn webhook_service.wsgi:application --bind 0.0.0.0:8000
+      - "8000:8000"
+    env_file: .env
+    depends_on:
+      - db
+      - redis
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+  redis:
+    image: redis:7
+  worker:
+    build: .
+    command: bash -c "source venv/bin/activate && celery -A webhook_service worker --loglevel=info"
+    env_file: .env
+    depends_on:
+      - redis
+      - db
+
+volumes:
+  pgdata:
